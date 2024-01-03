@@ -7,6 +7,10 @@ for a given releases. Unreleased, upcoming changes will be updated here periodic
 ## 3.x (unreleased)
 
 - The response when the `filter` parameter in a resolve request is not an array is now 400 bad request, and no longer 404 not found.
+- deprecated AmazonS3Resolver removed, use AwsS3 resolver instead
+- enqueue removed, use Symfony Messenger instead
+- Requirements are now php ^8.1 and Symfony ^6.4|^7.0 use v2 of this bundle with older versions
+- Documentation uses Dependency Injection and phpleague/flysystem-bundle for examples
 
 # 2.x
 
