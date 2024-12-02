@@ -12,47 +12,71 @@ Dependencies
 
 This cache resolver uses a ``League\\Flysystem\\Filesystem`` to cache files on any source supported
 by `Flysystem`_. Flysystem is provided by the ``league/flysystem`` package, but the easiest way to
-set up a service is using one of the flysystem bundles. You can use either `OneupFlysystemBundle`_
-or `The League FlysystemBundle`_. Both allow you to define filesystems as services,
-LiipImagineBundle does not care which one you use.
+set up a service is using `The League FlysystemBundle`_ or `OneupFlysystemBundle`_  For simplicity
+we show examples for league/flysystem-bundle.
 
-To install the `OneupFlysystemBundle`_, run the following composer command:
+To install the `The League FlysystemBundle`_, run the following composer command:
 
 .. code-block:: bash
 
-    $ composer require oneup/flysystem-bundle
+    composer require thephpleague/flysystem-bundle
 
 Configuration
 -------------
 
 The value of ``filesystem_service`` must be a service id of class ``League\\Flysystem\\Filesystem``.
-The service name depends on the naming scheme of the bundle, for `The League FlysystemBundle`_, it
-will be different than in the example below.
+The service name depends on the naming scheme of the bundle.
 
-Using `OneupFlysystemBundle`_, a basic configuration might look as follows:
+```yaml
+# config/packages/flysystem.yaml
+services:
+    Aws\S3\S3Client:
+        arguments:
+            - version: '2006-03-01'
+              credentials:
+                  key: '%env(AWS_S3_ACCESS_ID)%'
+                  secret: '%env(AWS_S3_ACCESS_SECRET)%'
 
-.. code-block:: yaml
+flysystem:
+    storages:
+        storage.aws:
+            adapter: 'aws'
+            options:
+                client: 'Aws\S3\S3Client'
+                bucket: '%env(AWS_S3_BUCKET_NAME)%'
+                prefix: '%env(S3_STORAGE_PREFIX)%'
 
-    # app/config/config.yml
+        storage.local:
+            adapter: 'local'
+            options:
+                directory: '%kernel.project_dir%/var/storage/uploads'
 
-    liip_imagine:
-        resolvers:
+        storage_filesystem:
+            adapter: 'lazy'
+            options:
+                source: '%env(APP_UPLOADS_SOURCE)%'
+```
+
+```yaml
+# config/packages/liip_imagine.yaml
+liip_imagine:
+    loaders:
+        flysystem_loader:
+            flysystem:
+                # this comes from flysystem.yaml
+                filesystem_service: uploads_filesystem
+
+    # default loader to use for all filter sets
+    data_loader: flysystem_loader
+
+    resolvers:
             profile_photos:
                 flysystem:
-                    filesystem_service: oneup_flysystem.profile_photos_filesystem
+                    filesystem_service: uploads_filesystem
                     root_url:           "https://images.example.com"
                     cache_prefix:       media/cache
-                    visibility:         public
-
-    oneup_flysystem:
-        adapters:
-            profile_photos:
-                local:
-                    directory:  "path/to/profile/photos"
-
-        filesystems:
-            profile_photos:
-                adapter: profile_photos
+                    visibility:         !php/const:League\Flysystem\Visibility::PUBLIC
+```
 
 There are several configuration options available:
 
@@ -63,8 +87,7 @@ There are several configuration options available:
   prefix inside the given Flysystem.
   Default value: ``media/cache``
 * ``visibility``: one of the two predefined flysystem visibility constants
-  (``Visibility::PUBLIC`` / ``Visibility::PRIVATE`` or if you use flysystem 1.*
-  ``AdapterInterface::VISIBILITY_PUBLIC`` [``public``] / ``AdapterInterface::VISIBILITY_PRIVATE`` [``private``])
+  (``Visibility::PUBLIC`` / ``Visibility::PRIVATE``
   The visibility is applied, when the objects are stored on a flysystem filesystem.
   You will most probably want to leave the default or explicitly set ``public``.
   Default value: ``public``
@@ -89,17 +112,16 @@ Usage on a Specific Filter
 Alternatively, you can set it as the cache resolver for a specific filter set using
 the following configuration.
 
-.. code-block:: yaml
-
-    # app/config/config.yml
-
-    liip_imagine:
-        filter_sets:
-            cache: ~
-            my_thumb:
-                cache: profile_photos
-                filters:
-                    # the filter list
+```yaml
+# config/packages/liip_imagine.yml
+liip_imagine:
+    filter_sets:
+        cache: ~
+        my_thumb:
+            cache: profile_photos
+            filters:
+                # the filter list
+```
 
 
 .. _`Flysystem`: https://github.com/thephpleague/flysystem
